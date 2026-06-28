@@ -1,33 +1,28 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
-type ColorOption = {
+export type ColorOption = {
   name: string;
   value: string;
 };
 
-type SizeOption = {
+export type SizeOption = {
   label: string;
   available: boolean;
 };
 
 type ProductVariantSelectorProps = {
   colors: ColorOption[];
+  selectedColor: string;
+  selectedSize: string;
   sizes: SizeOption[];
+  onColorChange: (color: string) => void;
+  onSizeChange: (size: string) => void;
 };
 
-export function ProductVariantSelector({ colors, sizes }: ProductVariantSelectorProps) {
-  const defaultSize = useMemo(() => {
-    const preferredSize = sizes.find((size) => size.label === 'S' && size.available);
-
-    return preferredSize?.label ?? sizes.find((size) => size.available)?.label ?? sizes[0]?.label ?? '';
-  }, [sizes]);
-  const [selectedColor, setSelectedColor] = useState(colors[0]?.value ?? '');
-  const [selectedSize, setSelectedSize] = useState(defaultSize);
-
-  const handleOptionKeyDown = <T extends { available?: boolean }>(
+export function ProductVariantSelector({ colors, selectedColor, selectedSize, sizes, onColorChange, onSizeChange }: ProductVariantSelectorProps) {
+  const handleOptionKeyDown = <T extends { available?: boolean } | ColorOption>(
     event: KeyboardEvent<HTMLButtonElement>,
     options: T[],
     currentIndex: number,
@@ -41,10 +36,13 @@ export function ProductVariantSelector({ colors, sizes }: ProductVariantSelector
 
     const availableOptions = options
       .map((option, index) => ({ option, index }))
-      .filter(({ option }) => option.available !== false);
+      .filter(({ option }) => !('available' in option) || option.available !== false);
     if (!availableOptions.length) return;
 
-    const currentAvailableIndex = availableOptions.findIndex(({ index }) => index === currentIndex);
+    const currentAvailableIndex = Math.max(
+      0,
+      availableOptions.findIndex(({ index }) => index === currentIndex),
+    );
     const nextAvailableIndex = (currentAvailableIndex + direction + availableOptions.length) % availableOptions.length;
     const next = availableOptions[nextAvailableIndex];
 
@@ -70,8 +68,8 @@ export function ProductVariantSelector({ colors, sizes }: ProductVariantSelector
                   isSelected ? 'ring-1 ring-[#111827] ring-offset-2' : ''
                 }`}
                 key={color.value}
-                onClick={() => setSelectedColor(color.value)}
-                onKeyDown={(event) => handleOptionKeyDown(event, colors, colors.indexOf(color), (nextColor) => setSelectedColor(nextColor.value))}
+                onClick={() => onColorChange(color.value)}
+                onKeyDown={(event) => handleOptionKeyDown(event, colors, colors.indexOf(color), (nextColor) => onColorChange(nextColor.value))}
                 role="radio"
                 style={{ background: color.value }}
                 type="button"
@@ -97,8 +95,8 @@ export function ProductVariantSelector({ colors, sizes }: ProductVariantSelector
                 }`}
                 disabled={!size.available}
                 key={size.label}
-                onClick={() => setSelectedSize(size.label)}
-                onKeyDown={(event) => handleOptionKeyDown(event, sizes, sizes.indexOf(size), (nextSize) => setSelectedSize(nextSize.label))}
+                onClick={() => onSizeChange(size.label)}
+                onKeyDown={(event) => handleOptionKeyDown(event, sizes, sizes.indexOf(size), (nextSize) => onSizeChange(nextSize.label))}
                 role="radio"
                 type="button"
               >
